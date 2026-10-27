@@ -27,6 +27,7 @@ The application currently provides:
 - Download of the generated dataset as `augmented_synthetic_dataset.csv`
 - Client-side EDA with numeric distributions, summary statistics, correlation-style visualization, and scatter plots
 - A local budget and expense tracker
+- Client-side demo authentication with signup, login, and logout controls
 - Additional data-science implementation guides in [`guide/`](./guide)
 
 > **Important:** Synthetic data is generated using randomized, heuristic methods. Validate statistical quality, privacy, and model performance before using generated data in production or high-stakes decisions.
@@ -107,6 +108,7 @@ This creates or overwrites the six HTML files in [`guide/`](./guide).
 
 - CSV processing is performed in the browser's memory.
 - The repository does not include an upload API, database, or server-side processing service.
+- The authentication controls are a local browser demo only. A profile and session are stored in `localStorage`; do not use them for real credentials or production access control.
 - Generated files are downloaded directly by the browser.
 - The page loads third-party JavaScript dependencies from CDNs. Review or self-host those dependencies if your environment requires a fully offline or controlled supply chain.
 - Do not upload sensitive or regulated data unless your browser, network, and organizational policies permit the workflow.

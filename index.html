@@ -40,6 +40,14 @@
                <a href="https://github.com/AYUSH-KUMAR97/synthetic-data-factory" target="_blank" class="bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-cyan-500/30 px-3 py-1.5 rounded-xl transition font-mono text-xs flex items-center gap-1 shadow-md hover:shadow-cyan-500/10 active:scale-95">
                    Get Source Code 🚀
                </a>
+               <div id="auth-guest-actions" class="flex items-center gap-2">
+                   <button type="button" onclick="openAuthModal('login')" class="text-slate-300 hover:text-cyan-400 transition font-medium">Log in</button>
+                   <button type="button" onclick="openAuthModal('signup')" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 px-3 py-1.5 rounded-xl transition font-bold text-xs shadow-md shadow-cyan-500/10 active:scale-95">Sign up</button>
+               </div>
+               <div id="auth-user-actions" class="hidden items-center gap-2">
+                   <span id="auth-user-label" class="text-xs text-cyan-400 font-mono max-w-24 truncate"></span>
+                   <button type="button" onclick="logoutUser()" class="text-slate-300 hover:text-rose-400 transition font-medium">Log out</button>
+               </div>
             </nav>
 
         </div>
@@ -492,6 +500,38 @@
             Disclaimer: We utilize cookies and modern structural ad placements to scale this free tool asset. No uploaded analytical files touch cloud networks; vectors exist purely inside local memory cache layers.
         </p>
     </footer>
+
+    <div id="modal-auth" class="hidden fixed inset-0 z-[60] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full shadow-2xl">
+            <div class="p-5 border-b border-slate-800 flex justify-between items-center">
+                <div>
+                    <h3 id="auth-modal-title" class="text-sm font-bold uppercase tracking-wider text-cyan-400 font-mono">Log in</h3>
+                    <p class="text-[10px] text-slate-500 mt-1">Local profile only — no data leaves this browser.</p>
+                </div>
+                <button type="button" onclick="closeAuthModal()" class="text-slate-500 hover:text-white font-mono text-xs">Close [X]</button>
+            </div>
+            <form id="auth-form" class="p-6 space-y-4">
+                <div>
+                    <label for="auth-email" class="block text-xs font-mono uppercase tracking-wider text-slate-400 mb-2">Email</label>
+                    <input id="auth-email" type="email" autocomplete="email" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30">
+                </div>
+                <div>
+                    <label for="auth-password" class="block text-xs font-mono uppercase tracking-wider text-slate-400 mb-2">Password</label>
+                    <input id="auth-password" type="password" minlength="6" autocomplete="current-password" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30">
+                </div>
+                <div id="auth-confirm-password-wrapper" class="hidden">
+                    <label for="auth-confirm-password" class="block text-xs font-mono uppercase tracking-wider text-slate-400 mb-2">Confirm password</label>
+                    <input id="auth-confirm-password" type="password" minlength="6" autocomplete="new-password" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30">
+                </div>
+                <p id="auth-feedback" class="hidden text-xs rounded-lg px-3 py-2"></p>
+                <button id="auth-submit" type="submit" class="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-lg py-2.5 text-sm font-bold transition active:scale-[.99]">Log in</button>
+                <p class="text-center text-xs text-slate-500">
+                    <span id="auth-switch-prompt">Need an account?</span>
+                    <button id="auth-switch" type="button" class="text-cyan-400 hover:text-cyan-300 font-semibold ml-1">Sign up</button>
+                </p>
+            </form>
+        </div>
+    </div>
 
     <script>
         let activeDataFrame = null;
@@ -1046,6 +1086,107 @@
                 }
             });
         }
+        let authMode = 'login';
+        const authStorageKey = 'synthetixai-auth-profile';
+        const authSessionKey = 'synthetixai-auth-session';
+
+        function openAuthModal(mode = 'login') {
+            authMode = mode;
+            const isSignup = mode === 'signup';
+            document.getElementById('auth-modal-title').innerText = isSignup ? 'Create account' : 'Log in';
+            document.getElementById('auth-submit').innerText = isSignup ? 'Create account' : 'Log in';
+            document.getElementById('auth-switch-prompt').innerText = isSignup ? 'Already have an account?' : 'Need an account?';
+            document.getElementById('auth-switch').innerText = isSignup ? 'Log in' : 'Sign up';
+            document.getElementById('auth-confirm-password-wrapper').classList.toggle('hidden', !isSignup);
+            document.getElementById('auth-confirm-password').required = isSignup;
+            clearAuthFeedback();
+            document.getElementById('modal-auth').classList.remove('hidden');
+            document.getElementById('auth-email').focus();
+        }
+
+        function closeAuthModal() {
+            document.getElementById('modal-auth').classList.add('hidden');
+            document.getElementById('auth-form').reset();
+            clearAuthFeedback();
+        }
+
+        function showAuthFeedback(message, isError = true) {
+            const feedback = document.getElementById('auth-feedback');
+            feedback.innerText = message;
+            feedback.className = `text-xs rounded-lg px-3 py-2 ${isError
+                ? 'text-rose-300 bg-rose-500/10 border border-rose-500/20'
+                : 'text-emerald-300 bg-emerald-500/10 border border-emerald-500/20'}`;
+        }
+
+        function clearAuthFeedback() {
+            const feedback = document.getElementById('auth-feedback');
+            feedback.innerText = '';
+            feedback.className = 'hidden text-xs rounded-lg px-3 py-2';
+        }
+
+        function updateAuthUI() {
+            const session = localStorage.getItem(authSessionKey);
+            const guestActions = document.getElementById('auth-guest-actions');
+            const userActions = document.getElementById('auth-user-actions');
+            const userLabel = document.getElementById('auth-user-label');
+            const isLoggedIn = Boolean(session);
+
+            guestActions.classList.toggle('hidden', isLoggedIn);
+            userActions.classList.toggle('hidden', !isLoggedIn);
+            userActions.classList.toggle('flex', isLoggedIn);
+            if (isLoggedIn) userLabel.innerText = session;
+        }
+
+        function logoutUser() {
+            localStorage.removeItem(authSessionKey);
+            updateAuthUI();
+            openAuthModal('login');
+            showAuthFeedback('You have been logged out.', false);
+        }
+
+        document.getElementById('auth-switch').addEventListener('click', () => {
+            openAuthModal(authMode === 'login' ? 'signup' : 'login');
+        });
+
+        document.getElementById('auth-form').addEventListener('submit', (event) => {
+            event.preventDefault();
+            const email = document.getElementById('auth-email').value.trim().toLowerCase();
+            const password = document.getElementById('auth-password').value;
+            const profile = JSON.parse(localStorage.getItem(authStorageKey) || 'null');
+
+            if (authMode === 'signup') {
+                const confirmation = document.getElementById('auth-confirm-password').value;
+                if (password !== confirmation) {
+                    showAuthFeedback('Passwords do not match.');
+                    return;
+                }
+                if (profile) {
+                    showAuthFeedback('A local account already exists. Please log in.');
+                    return;
+                }
+                localStorage.setItem(authStorageKey, JSON.stringify({ email, password }));
+                localStorage.setItem(authSessionKey, email);
+                updateAuthUI();
+                closeAuthModal();
+                return;
+            }
+
+            if (!profile || profile.email !== email || profile.password !== password) {
+                showAuthFeedback('Incorrect email or password.');
+                return;
+            }
+
+            localStorage.setItem(authSessionKey, email);
+            updateAuthUI();
+            closeAuthModal();
+        });
+
+        document.getElementById('modal-auth').addEventListener('click', (event) => {
+            if (event.target.id === 'modal-auth') closeAuthModal();
+        });
+
+        updateAuthUI();
+
         // 🔒 TOGGLE POPUP MODALS FUNCTION
         function toggleModal(modalId) {
             const modal = document.getElementById(modalId);
